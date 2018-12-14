@@ -18,6 +18,12 @@ Since `backtrace()` uses `malloc()` and the heap my be corrupted by the time it 
 overload; on MacOSX, `malloc_default_zone()` approach is taken because overloading does
 not work out of the box.
 
+## Update
+
+- Header only
+- Compile a dummy class on Windows
+- Namespace "Debug" removed
+
 Example
 =======
 
@@ -34,7 +40,7 @@ int main() {
 ~~~~
 
 ~~~~{.sh}
-g++ -g death_handler.cc test.cc -ldl -o test
+g++ -g test.cc -ldl -o test
 ./test
 ~~~~
 
