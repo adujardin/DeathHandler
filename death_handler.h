@@ -281,21 +281,20 @@ private:
 
 #define INLINE __attribute__((always_inline)) inline
 
-namespace Debug {
-    namespace Safe {
-        INLINE void print(const char *msg, size_t len = 0);
-    } // namespace Safe
-} // namespace Debug
+namespace Safe {
+    INLINE void print(const char *msg, size_t len = 0);
+} // namespace Safe
+
 
 extern "C" {
 
     void* __malloc_impl(size_t size) {
         char* malloc_buffer =
-                Debug::DeathHandler::memory_ + Debug::DeathHandler::kNeededMemory - 512;
+                DeathHandler::memory_ + DeathHandler::kNeededMemory - 512;
         if (size > 512U) {
             const char* msg = "malloc() replacement function should not return "
                     "a memory block larger than 512 bytes\n";
-            Debug::DeathHandler::print(msg, strlen(msg) + 1);
+            DeathHandler::print(msg, strlen(msg) + 1);
             _Exit(EXIT_FAILURE);
         }
         return malloc_buffer;
@@ -304,38 +303,38 @@ extern "C" {
 #ifdef __linux__
 
     void* malloc(size_t size) throw () {
-        if (!Debug::DeathHandler::heap_trap_active_) {
-            if (!Debug::DeathHandler::malloc_) {
-                Debug::DeathHandler::malloc_ = dlsym(RTLD_NEXT, "malloc");
+        if (!DeathHandler::heap_trap_active_) {
+            if (!DeathHandler::malloc_) {
+                DeathHandler::malloc_ = dlsym(RTLD_NEXT, "malloc");
             }
-            return ((void*(*)(size_t))Debug::DeathHandler::malloc_)(size);
+            return ((void*(*)(size_t))DeathHandler::malloc_)(size);
         }
         return __malloc_impl(size);
     }
 
     void free(void* ptr) throw () {
-        if (!Debug::DeathHandler::heap_trap_active_) {
-            if (!Debug::DeathHandler::free_) {
-                Debug::DeathHandler::free_ = dlsym(RTLD_NEXT, "free");
+        if (!DeathHandler::heap_trap_active_) {
+            if (!DeathHandler::free_) {
+                DeathHandler::free_ = dlsym(RTLD_NEXT, "free");
             }
-            ((void(*)(void*))Debug::DeathHandler::free_)(ptr);
+            ((void(*)(void*))DeathHandler::free_)(ptr);
         }
         // no-op
     }
 #elif defined(__APPLE__)
 
     void* __malloc_zone(struct _malloc_zone_t* zone, size_t size) {
-        if (!Debug::DeathHandler::heap_trap_active_) {
+        if (!DeathHandler::heap_trap_active_) {
             return ((void*(*)(struct _malloc_zone_t*, size_t))
-            Debug::DeathHandler::malloc_)(zone, size);
+            DeathHandler::malloc_)(zone, size);
         }
         return __malloc_impl(size);
     }
 
     void __free_zone(struct _malloc_zone_t* zone, void *ptr) {
-        if (!Debug::DeathHandler::heap_trap_active_) {
+        if (!DeathHandler::heap_trap_active_) {
             return ((void(*)(struct _malloc_zone_t*, void*))
-            Debug::DeathHandler::free_)(zone, ptr);
+            DeathHandler::free_)(zone, ptr);
         }
         // no-op
     }
@@ -789,9 +788,11 @@ void DeathHandler::HandleSignal(int sig, void * /* info */, void *secret) {
 #ifdef __linux__
 #if defined(__arm__)
     trace[1] = reinterpret_cast<void *> (uc->uc_mcontext.arm_pc);
+#elif defined(__aarch64__)
+    trace[1] = reinterpret_cast<void *> (uc->uc_mcontext.pc);
 #else
 #if !defined(__i386__) && !defined(__x86_64__)
-#error Only ARM, x86 and x86-64 are supported
+#error Only ARM, aarch64, x86 and x86-64 are supported
 #endif
 #if defined(__x86_64__)
     trace[1] = reinterpret_cast<void *> (uc->uc_mcontext.gregs[REG_RIP]);

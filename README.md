@@ -18,11 +18,12 @@ Since `backtrace()` uses `malloc()` and the heap my be corrupted by the time it 
 overload; on MacOSX, `malloc_default_zone()` approach is taken because overloading does
 not work out of the box.
 
-## Update
+## Update on this fork
 
 - Header only
 - Compile a dummy class on Windows
-- Namespace "Debug" removed
+- Namespace `Debug` removed
+- aarch64 "support"
 
 Example
 =======
